@@ -1,1 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VagaFácil — Controle de Estacionamento</title>
+  <style>
+    :root {
+      --bg: #07131a;
+      --panel: #0d1f2a;
+      --panel-2: #102833;
+      --line: #1e3d4d;
+      --text: #e8f4f0;
+      --muted: #8aa8b3;
+      --accent: #2dd4bf;
+      --accent-2: #22c55e;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --free: #134e4a;
+      --free-b: #14b8a6;
+      --busy: #4a1520;
+      --busy-b: #fb7185;
+      --shadow: 0 12px 30px rgba(0, 0, 0, .28);
+    }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(900px 400px at 10% -10%, #12344a 0%, transparent 55%),
+        radial-gradient(700px 300px at 100% 0%, #0b3a32 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .wrap { max-width: 1360px; margin: 0 auto; }
+
+    header.top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .logo {
+      width: 46px; height: 46px; border-radius: 14px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+      font-size: 1.4rem;
+      box-shadow: 0 8px 20px rgba(20, 184, 166, .25);
+    }
+    h1 { font-size: 1.55rem; letter-spacing: .2px; }
+    .sub { color: var(--muted); font-size: .92rem; margin-top: 2px; }
+    .clock-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 14px;
+      text-align: right;
+    }
+    .clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 1.15rem; color: var(--accent); }
+    .date { color: var(--muted); font-size: .8rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat small { color: var(--muted); text-transform: uppercase; letter-spacing: .6px; font-size: .7rem; }
+    .stat b { display: block; margin-top: 6px; font-size: 1.45rem; }
+    .c-teal { color: #5eead4; }
+    .c-green { color: #4ade80; }
+    .c-rose { color: #fb7185; }
+    .c-amber { color: #fbbf24; }
+    .c-sky { color: #38bdf8; }
+    .c-lime { color: #a3e635; }
+
+    .ocupacao {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .ocupacao-top { display: flex; justify-content: space-between; color: var(--muted); font-size: .85rem; margin-bottom: 8px; }
+    .bar { height: 10px; background: #0b2a33; border-radius: 99px; overflow: hidden; }
+    .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #14b8a6, #22c55e); transition: width .35s ease; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    .legend { display: flex; gap: 14px; margin-bottom: 12px; color: var(--muted); font-size: .85rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.livre { background: var(--free-b); }
+    .dot.ocupada { background: var(--busy-b); }
+
+    .setores { display: grid; gap: 14px; }
+    .setor-titulo { color: var(--muted); font-size: .8rem; margin-bottom: 8px; letter-spacing: .8px; text-transform: uppercase; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+
+    .vaga {
+      min-height: 92px;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      padding: 6px;
+      text-align: center;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .vaga:hover { transform: translateY(-3px); }
+    .vaga.livre { background: var(--free); border-color: var(--free-b); }
+    .vaga.ocupada { background: var(--busy); border-color: var(--busy-b); }
+    .vaga.destaque { box-shadow: 0 0 0 3px rgba(251, 191, 36, .55); transform: scale(1.04); }
+    .vaga .icone { font-size: 1.35rem; }
+    .vaga .num { font-weight: 700; font-size: .82rem; }
+    .vaga .placa {
+      font-size: .68rem;
+      background: rgba(0,0,0,.35);
+      padding: 2px 5px;
+      border-radius: 4px;
+      letter-spacing: .4px;
+    }
+    .vaga .tipo { font-size: .68rem; opacity: .85; }
+
+    label { display: block; color: var(--muted); font-size: .8rem; margin-bottom: 5px; }
+    input, select {
+      width: 100%;
+      background: #071820;
+      color: var(--text);
+      border: 1px solid #2a5363;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: .95rem;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .field { margin-bottom: 12px; }
+
+    .btn {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .btn-main { background: linear-gradient(90deg, #14b8a6, #0ea5e9); color: #062018; }
+    .btn-alt { background: #16323d; color: var(--text); }
+    .btn-warn { background: linear-gradient(90deg, #f59e0b, #d97706); color: #1a1204; }
+    .btn-danger { background: #7f1d1d; color: #fecaca; }
+    .btn:hover { filter: brightness(1.08); }
+
+    .busca {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .busca h3 { color: var(--warn); font-size: .9rem; margin-bottom: 8px; }
+    .resultado { display: none; margin-top: 10px; padding: 10px; border-radius: 8px; font-size: .86rem; }
+    .resultado.ok { display: block; background: #064e3b; border: 1px solid #34d399; color: #a7f3d0; }
+    .resultado.err { display: block; background: #4c0519; border: 1px solid #fb7185; color: #fecdd3; }
+
+    .tabela-box { margin-top: 16px; }
+    .tabela-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .filtros { display: flex; gap: 8px; }
+    .filtros button {
+      background: #16323d; color: var(--muted); border: 1px solid var(--line);
+      border-radius: 999px; padding: 6px 10px; cursor: pointer; font-size: .78rem;
+    }
+    .filtros button.ativo { background: #134e4a; color: #99f6e4; border-color: #14b8a6; }
+
+    .scroll { overflow: auto; max-height: 280px; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    th { position: sticky; top: 0; background: #071820; color: var(--muted); text-align: left; padding: 10px 8px; }
+    td { padding: 10px 8px; border-bottom: 1px solid var(--line); }
+    tr:hover td { background: #12313d; }
+    .badge { border-radius: 999px; padding: 2px 8px; font-size: .72rem; font-weight: 700; }
+    .badge.entrada { background: #14532d; color: #86efac; }
+    .badge.saida { background: #7f1d1d; color: #fecaca; }
+
+    .toast {
+      position: fixed; right: 16px; bottom: 16px; z-index: 40;
+      background: #134e4a; color: #ccfbf1; border: 1px solid #2dd4bf;
+      padding: 12px 14px; border-radius: 12px; display: none; max-width: 280px;
+    }
+
+    .modal-bg {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      place-items: center; z-index: 50; padding: 16px;
+    }
+    .modal-bg.aberto { display: grid; }
+    .ticket {
+      width: min(420px, 100%);
+      background: #f8fafc; color: #0f172a;
+      border-radius: 16px; padding: 20px;
+      font-family: ui-monospace, "Cascadia Mono", monospace;
+    }
+    .ticket h3 { text-align: center; margin-bottom: 8px; }
+    .ticket p { font-size: .9rem; margin: 6px 0; }
+    .ticket .total { font-size: 1.25rem; font-weight: 800; margin-top: 10px; }
+    .ticket .acoes { display: flex; gap: 8px; margin-top: 14px; }
+    .ticket button { flex: 1; border: 0; border-radius: 10px; padding: 10px; font-weight: 700; cursor: pointer; }
+    .ticket .ok { background: #0f766e; color: white; }
+    .ticket .no { background: #e2e8f0; }
+
+    .precos { color: var(--muted); font-size: .78rem; line-height: 1.45; margin: 8px 0 12px; }
+
+    @media (max-width: 1100px) {
+      .layout, .stats { grid-template-columns: 1fr 1fr; }
+      .layout { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">P</div>
+        <div>
+          <h1>VagaFácil</h1>
+          <p class="sub">Sistema de estacionamento com cobrança por tempo</p>
+        </div>
+      </div>
+      <div class="clock-box">
+        <div class="clock" id="relogio">--:--:--</div>
+        <div class="date" id="dataHoje">—</div>
+      </div>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><small>Total</small><b class="c-sky" id="totalVagas">24</b></div>
+      <div class="stat"><small>Livres</small><b class="c-green" id="vagasLivres">0</b></div>
+      <div class="stat"><small>Ocupadas</small><b class="c-rose" id="vagasOcupadas">0</b></div>
+      <div class="stat"><small>Entradas</small><b class="c-amber" id="entradasHoje">0</b></div>
+      <div class="stat"><small>Saídas</small><b class="c-teal" id="saidasHoje">0</b></div>
+      <div class="stat"><small>Receita</small><b class="c-lime" id="receita">R$ 0,00</b></div>
+    </section>
+
+    <div class="ocupacao">
+      <div class="ocupacao-top">
+        <span>Ocupação do pátio</span>
+        <span id="pctOcupacao">0%</span>
+      </div>
+      <div class="bar"><i id="barraOcupacao"></i></div>
+    </div>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Mapa de vagas</h2>
+        <div class="legend">
+          <span><i class="dot livre"></i> Livre</span>
+          <span><i class="dot ocupada"></i> Ocupada — clique para sair</span>
+        </div>
+        <div class="setores">
+          <div>
+            <div class="setor-titulo">Setor A — cobertura</div>
+            <div class="grid" id="gridA"></div>
+          </div>
+          <div>
+            <div class="setor-titulo">Setor B — descoberto</div>
+            <div class="grid" id="gridB"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="busca">
+          <h3>Buscar placa</h3>
+          <div class="field">
+            <input id="buscaPlaca" maxlength="8" placeholder="ABC1D23" style="text-transform:uppercase">
+          </div>
+          <button class="btn btn-warn" onclick="buscarPlaca()">Buscar</button>
+          <div id="resultadoBusca" class="resultado"></div>
+        </div>
+
+        <h2>Registrar entrada</h2>
+        <p class="precos">Tabela: R$ 8,00 a 1ª hora · R$ 4,00 por hora extra · teto R$ 40,00. Moto tem 30% de desconto.</p>
+
+        <div class="field">
+          <label>Vaga livre</label>
+          <select id="selectVaga"></select>
+        </div>
+        <div class="field">
+          <label>Placa</label>
+          <input id="placa" maxlength="8" placeholder="ABC1D23 ou ABC1234" style="text-transform:uppercase">
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select id="tipoVeiculo">
+            <option value="Carro">Carro</option>
+            <option value="Moto">Moto</option>
+            <option value="SUV">SUV</option>
+            <option value="Caminhonete">Caminhonete</option>
+            <option value="Van">Van</option>
+          </select>
+        </div>
+        <button class="btn btn-main" onclick="estacionar()">Estacionar</button>
+        <button class="btn btn-alt" onclick="limparFormulario()">Limpar</button>
+        <button class="btn btn-danger" onclick="liberarTodas()">Liberar todas</button>
+        <button class="btn btn-alt" onclick="resetarDados()">Zerar sistema</button>
+      </aside>
+    </div>
+
+    <section class="panel tabela-box">
+      <div class="tabela-head">
+        <h2>Movimentação</h2>
+        <div class="filtros">
+          <button class="ativo" data-filtro="todas" onclick="filtrarMov(this, 'todas')">Todas</button>
+          <button data-filtro="entrada" onclick="filtrarMov(this, 'entrada')">Entradas</button>
+          <button data-filtro="saida" onclick="filtrarMov(this, 'saida')">Saídas</button>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Horário</th>
+              <th>Tipo</th>
+              <th>Vaga</th>
+              <th>Placa</th>
+              <th>Veículo</th>
+              <th>Permanência</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaMovimentacao"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-bg" id="modalTicket">
+    <div class="ticket" id="ticketBox"></div>
+  </div>
+
+  <script>
+    const TOTAL = 24;
+    const PRECO_PRIMEIRA = 8;
+    const PRECO_EXTRA = 4;
+    const TETO = 40;
+    const CHAVE = "vagafacil-v2";
+
+    const ICONES = {
+      Carro: "🚗",
+      Moto: "🏍️",
+      SUV: "🚙",
+      Caminhonete: "🛻",
+      Van: "🚐"
+    };
+
+    let vagas = [];
+    let movimentacao = [];
+    let entradasHoje = 0;
+    let saidasHoje = 0;
+    let receita = 0;
+    let filtroAtual = "todas";
+    let saidaPendente = null;
+
+    function codigoVaga(i) {
+      return i < 12 ? "A" + (i + 1) : "B" + (i - 11);
+    }
+
+    function agora() { return new Date(); }
+
+    function formatarHora(d) {
+      return new Date(d).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+
+    function formatarMoeda(n) {
+      return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function minutosEntre(inicio, fim) {
+      return Math.max(0, Math.floor((new Date(fim) - new Date(inicio)) / 60000));
+    }
+
+    function textoTempo(min) {
+      if (min < 1) return "menos de 1 min";
+      if (min < 60) return min + " min";
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return h + "h " + m + "min";
+    }
+
+    function calcularValor(tipo, entrada, saida) {
+      const min = Math.max(1, minutosEntre(entrada, saida));
+      const horas = Math.ceil(min / 60);
+      let valor = PRECO_PRIMEIRA + Math.max(0, horas - 1) * PRECO_EXTRA;
+      if (valor > TETO) valor = TETO;
+      if (tipo === "Moto") valor = valor * 0.7;
+      return { min, horas, valor: Number(valor.toFixed(2)) };
+    }
+
+    function placaValida(p) {
+      return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
+    }
+
+    function gerarPlaca() {
+      const L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const N = "0123456789";
+      return L[r(26)] + L[r(26)] + L[r(26)] + N[r(10)] + L[r(26)] + N[r(10)] + N[r(10)];
+    }
+    function r(n) { return Math.floor(Math.random() * n); }
+
+    function salvar() {
+      localStorage.setItem(CHAVE, JSON.stringify({
+        vagas, movimentacao, entradasHoje, saidasHoje, receita, dia: new Date().toDateString()
+      }));
+    }
+
+    function carregar() {
+      const raw = localStorage.getItem(CHAVE);
+      if (!raw) return false;
+      try {
+        const d = JSON.parse(raw);
+        if (d.dia !== new Date().toDateString()) return false;
+        vagas = d.vagas;
+        movimentacao = d.movimentacao || [];
+        entradasHoje = d.entradasHoje || 0;
+        saidasHoje = d.saidasHoje || 0;
+        receita = d.receita || 0;
+        return Array.isArray(vagas) && vagas.length === TOTAL;
+      } catch {
+        return false;
+      }
+    }
+
+    function criarPatioDemo() {
+      vagas = [];
+      for (let i = 0; i < TOTAL; i++) {
+        vagas.push({
+          id: i,
+          codigo: codigoVaga(i),
+          ocupada: false,
+          placa: null,
+          tipo: null,
+          horarioEntrada: null
+        });
+      }
+      const tipos = ["Carro", "Moto", "SUV", "Caminhonete"];
+      let preenchidas = 0;
+      while (preenchidas < 5) {
+        const i = r(TOTAL);
+        if (vagas[i].ocupada) continue;
+        vagas[i].ocupada = true;
+        vagas[i].placa = gerarPlaca();
+        vagas[i].tipo = tipos[r(tipos.length)];
+        vagas[i].horarioEntrada = new Date(Date.now() - r(90) * 60000).toISOString();
+        entradasHoje++;
+        movimentacao.unshift({
+          horario: formatarHora(vagas[i].horarioEntrada),
+          tipo: "entrada",
+          vaga: vagas[i].codigo,
+          placa: vagas[i].placa,
+          veiculo: vagas[i].tipo,
+          permanencia: "-",
+          valor: 0
+        });
+        preenchidas++;
+      }
+    }
+
+    function iniciar() {
+      if (!carregar()) criarPatioDemo();
+      renderizar();
+      document.getElementById("buscaPlaca").addEventListener("keydown", e => {
+        if (e.key === "Enter") buscarPlaca();
+      });
+      document.getElementById("placa").addEventListener("keydown", e => {
+        if (e.key === "Enter") estacionar();
+      });
+      atualizarRelogio();
+      setInterval(atualizarRelogio, 1000);
+    }
+
+    function atualizarRelogio() {
+      const n = agora();
+      document.getElementById("relogio").textContent = n.toLocaleTimeString("pt-BR");
+      document.getElementById("dataHoje").textContent = n.toLocaleDateString("pt-BR", {
+        weekday: "long", day: "2-digit", month: "long"
+      });
+    }
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.style.display = "none"; }, 2600);
+    }
+
+    function renderizar() {
+      renderVagas();
+      renderSelect();
+      renderResumo();
+      renderTabela();
+      salvar();
+    }
+
+    function renderVagas() {
+      const a = document.getElementById("gridA");
+      const b = document.getElementById("gridB");
+      a.innerHTML = "";
+      b.innerHTML = "";
+      vagas.forEach((vaga, index) => {
+        const div = document.createElement("div");
+        div.className = "vaga " + (vaga.ocupada ? "ocupada" : "livre");
+        div.id = "vaga-" + index;
+        if (vaga.ocupada) {
+          div.innerHTML =
+            '<div class="icone">' + (ICONES[vaga.tipo] || "🚗") + "</div>" +
+            '<div class="num">' + vaga.codigo + "</div>" +
+            '<div class="placa">' + vaga.placa + "</div>" +
+            '<div class="tipo">' + vaga.tipo + "</div>";
+          div.title = "Clique para registrar a saída";
+          div.onclick = () => pedirSaida(index);
+        } else {
+          div.innerHTML =
+            '<div class="icone">🅿️</div>' +
+            '<div class="num">' + vaga.codigo + "</div>" +
+            '<div class="tipo">Livre</div>';
+          div.title = "Clique para escolher esta vaga";
+          div.onclick = () => {
+            document.getElementById("selectVaga").value = String(index);
+            toast("Vaga " + vaga.codigo + " selecionada");
+          };
+        }
+        (index < 12 ? a : b).appendChild(div);
+      });
+    }
+
+    function renderSelect() {
+      const select = document.getElementById("selectVaga");
+      const atual = select.value;
+      select.innerHTML = '<option value="">Escolha uma vaga...</option>';
+      vagas.forEach((vaga, index) => {
+        if (!vaga.ocupada) {
+          const opt = document.createElement("option");
+          opt.value = index;
+          opt.textContent = vaga.codigo + (index < 12 ? " · cobertura" : " · descoberto");
+          select.appendChild(opt);
+        }
+      });
+      if (atual && [...select.options].some(o => o.value === atual)) select.value = atual;
+    }
+
+    function renderResumo() {
+      const livres = vagas.filter(v => !v.ocupada).length;
+      const ocupadas = TOTAL - livres;
+      const pct = Math.round((ocupadas / TOTAL) * 100);
+      document.getElementById("totalVagas").textContent = TOTAL;
+      document.getElementById("vagasLivres").textContent = livres;
+      document.getElementById("vagasOcupadas").textContent = ocupadas;
+      document.getElementById("entradasHoje").textContent = entradasHoje;
+      document.getElementById("saidasHoje").textContent = saidasHoje;
+      document.getElementById("receita").textContent = formatarMoeda(receita);
+      document.getElementById("pctOcupacao").textContent = pct + "%";
+      document.getElementById("barraOcupacao").style.width = pct + "%";
+    }
+
+    function renderTabela() {
+      const tbody = document.getElementById("tabelaMovimentacao");
+      const lista = movimentacao.filter(m => filtroAtual === "todas" || m.tipo === filtroAtual);
+      if (!lista.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8aa8b3">Nenhum registro</td></tr>';
+        return;
+      }
+      tbody.innerHTML = lista.map(m =>
+        "<tr>" +
+          "<td>" + m.horario + "</td>" +
+          '<td><span class="badge ' + m.tipo + '">' + (m.tipo === "entrada" ? "ENTRADA" : "SAÍDA") + "</span></td>" +
+          "<td>" + m.vaga + "</td>" +
+          "<td><strong>" + m.placa + "</strong></td>" +
+          "<td>" + m.veiculo + "</td>" +
+          "<td>" + (m.permanencia || "-") + "</td>" +
+          "<td>" + (m.valor > 0 ? formatarMoeda(m.valor) : "-") + "</td>" +
+        "</tr>"
+      ).join("");
+    }
+
+    function filtrarMov(btn, tipo) {
+      filtroAtual = tipo;
+      document.querySelectorAll(".filtros button").forEach(b => b.classList.remove("ativo"));
+      btn.classList.add("ativo");
+      renderTabela();
+    }
+
+    function buscarPlaca() {
+      const termo = document.getElementById("buscaPlaca").value.trim().toUpperCase();
+      const box = document.getElementById("resultadoBusca");
+      document.querySelectorAll(".vaga.destaque").forEach(el => el.classList.remove("destaque"));
+      if (!termo) {
+        box.className = "resultado err";
+        box.textContent = "Digite uma placa.";
+        return;
+      }
+      const index = vagas.findIndex(v => v.ocupada && v.placa === termo);
+      if (index < 0) {
+        box.className = "resultado err";
+        box.innerHTML = "Placa <strong>" + termo + "</strong> não está no pátio.";
+        return;
+      }
+      const v = vagas[index];
+      const min = minutosEntre(v.horarioEntrada, agora());
+      const prev = calcularValor(v.tipo, v.horarioEntrada, agora());
+      box.className = "resultado ok";
+      box.innerHTML =
+        "Encontrado na vaga <strong>" + v.codigo + "</strong><br>" +
+        v.tipo + " · " + textoTempo(min) + "<br>" +
+        "Valor estimado: <strong>" + formatarMoeda(prev.valor) + "</strong>";
+      const el = document.getElementById("vaga-" + index);
+      if (el) {
+        el.classList.add("destaque");
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    function estacionar() {
+      const index = document.getElementById("selectVaga").value;
+      const placa = document.getElementById("placa").value.trim().toUpperCase();
+      const tipo = document.getElementById("tipoVeiculo").value;
+      if (index === "") return toast("Escolha uma vaga livre.");
+      if (!placaValida(placa)) return toast("Use placa antiga (ABC1234) ou Mercosul (ABC1D23).");
+      if (vagas.some(v => v.ocupada && v.placa === placa)) return toast("Essa placa já está estacionada.");
+      const vaga = vagas[Number(index)];
+      vaga.ocupada = true;
+      vaga.placa = placa;
+      vaga.tipo = tipo;
+      vaga.horarioEntrada = agora().toISOString();
+      entradasHoje++;
+      movimentacao.unshift({
+        horario: formatarHora(agora()),
+        tipo: "entrada",
+        vaga: vaga.codigo,
+        placa,
+        veiculo: tipo,
+        permanencia: "-",
+        valor: 0
+      });
+      limparFormulario();
+      renderizar();
+      toast("Entrada registrada na vaga " + vaga.codigo);
+    }
+
+    function pedirSaida(index) {
+      const vaga = vagas[index];
+      if (!vaga.ocupada) return;
+      const calc = calcularValor(vaga.tipo, vaga.horarioEntrada, agora());
+      saidaPendente = index;
+      document.getElementById("ticketBox").innerHTML =
+        "<h3>Ticket de saída</h3>" +
+        "<p>Vaga: <strong>" + vaga.codigo + "</strong></p>" +
+        "<p>Placa: <strong>" + vaga.placa + "</strong></p>" +
+        "<p>Veículo: " + vaga.tipo + "</p>" +
+        "<p>Entrada: " + formatarHora(vaga.horarioEntrada) + "</p>" +
+        "<p>Permanência: " + textoTempo(calc.min) + "</p>" +
+        '<p class="total">Total: ' + formatarMoeda(calc.valor) + "</p>" +
+        '<div class="acoes">' +
+          '<button class="no" onclick="fecharTicket()">Cancelar</button>' +
+          '<button class="ok" onclick="confirmarSaida()">Confirmar saída</button>' +
+        "</div>";
+      document.getElementById("modalTicket").classList.add("aberto");
+    }
+
+    function fecharTicket() {
+      document.getElementById("modalTicket").classList.remove("aberto");
+      saidaPendente = null;
+    }
+
+    function confirmarSaida() {
+      if (saidaPendente === null) return;
+      const vaga = vagas[saidaPendente];
+      const calc = calcularValor(vaga.tipo, vaga.horarioEntrada, agora());
+      movimentacao.unshift({
+        horario: formatarHora(agora()),
+        tipo: "saida",
+        vaga: vaga.codigo,
+        placa: vaga.placa,
+        veiculo: vaga.tipo,
+        permanencia: textoTempo(calc.min),
+        valor: calc.valor
+      });
+      receita += calc.valor;
+      saidasHoje++;
+      vaga.ocupada = false;
+      vaga.placa = null;
+      vaga.tipo = null;
+      vaga.horarioEntrada = null;
+      fecharTicket();
+      renderizar();
+      toast("Saída confirmada. " + formatarMoeda(calc.valor));
+    }
+
+    function liberarTodas() {
+      const ocupadas = vagas.filter(v => v.ocupada);
+      if (!ocupadas.length) return toast("Não há vagas ocupadas.");
+      if (!confirm("Registrar saída de todas as " + ocupadas.length + " vagas?")) return;
+      ocupadas.forEach(vaga => {
+        const calc = calcularValor(vaga.tipo, vaga.horarioEntrada, agora());
+        movimentacao.unshift({
+          horario: formatarHora(agora()),
+          tipo: "saida",
+          vaga: vaga.codigo,
+          placa: vaga.placa,
+          veiculo: vaga.tipo,
+          permanencia: textoTempo(calc.min),
+          valor: calc.valor
+        });
+        receita += calc.valor;
+        saidasHoje++;
+        vaga.ocupada = false;
+        vaga.placa = null;
+        vaga.tipo = null;
+        vaga.horarioEntrada = null;
+      });
+      renderizar();
+      toast("Todas as vagas foram liberadas.");
+    }
+
+    function resetarDados() {
+      if (!confirm("Apagar os dados salvos e recomeçar o dia?")) return;
+      localStorage.removeItem(CHAVE);
+      entradasHoje = 0;
+      saidasHoje = 0;
+      receita = 0;
+      movimentacao = [];
+      criarPatioDemo();
+      renderizar();
+      toast("Sistema reiniciado.");
+    }
+
+    function limparFormulario() {
+      document.getElementById("selectVaga").value = "";
+      document.getElementById("placa").value = "";
+      document.getElementById("tipoVeiculo").value = "Carro";
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
